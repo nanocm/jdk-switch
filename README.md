@@ -102,6 +102,7 @@ An existing jsh `config.json` is imported automatically on first run and left in
 | `jsh download <major> [--vendor NAME]` | Download, install, and register a JDK. |
 | `jsh use <version-or-ID>` | Switch to an installed JDK. |
 | `jsh current` | Show the active Java and detect a `PATH` mismatch. |
+| `jsh help <command>` | Show command options and examples. |
 
 Multiple installations of the same version keep separate IDs. Use the ID shown by `jsh list` when a version is ambiguous.
 

@@ -102,6 +102,7 @@ jsh download 21 --vendor openjdk
 | `jsh download <主版本> [--vendor 名称]` | 下载、安装并登记 JDK。 |
 | `jsh use <版本或ID>` | 切换到已安装的 JDK。 |
 | `jsh current` | 显示当前 Java，并检查 `PATH` 是否一致。 |
+| `jsh help <命令>` | 查看命令参数和用法示例。 |
 
 相同版本的多个安装会保留不同 ID。版本有歧义时，请使用 `jsh list` 显示的 ID。
 
