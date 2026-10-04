@@ -14,5 +14,9 @@
 .DS_Store
 Thumbs.db
 
-# Config (user specific)
-.j-switch/
+# User data when jsh runs beside a manually copied binary
+/jsh_config.json
+/jsh_config.lock
+/jsh-current
+/jdks/
+/downloads/

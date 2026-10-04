@@ -43,7 +43,12 @@ grep -Fq 'JDK 21' "$smoke_root/list-after.txt"
 grep -Fq "$smoke_root/managed-jdks" "$smoke_root/list-after.txt"
 
 "$smoke_root/jsh" use 17
-source "$HOME/.bashrc"
+if [[ $(uname -s) == Darwin ]]; then
+    profile="$HOME/.bash_profile"
+else
+    profile="$HOME/.bashrc"
+fi
+source "$profile"
 java -version 2> "$smoke_root/java-17.txt"
 grep -Eq 'version "17([.+"]|$)' "$smoke_root/java-17.txt"
 

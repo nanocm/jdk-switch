@@ -14,16 +14,26 @@ impl UnixEnvUpdater {
         Ok(Config::config_dir()?.join("jsh-current"))
     }
 
-    fn get_shell_rc_path() -> Result<PathBuf> {
+    pub(crate) fn shell_rc_path() -> Result<PathBuf> {
         let home = dirs::home_dir()
             .ok_or_else(|| JdkError::EnvError("Cannot find home directory".to_string()))?;
-        match std::env::var_os("SHELL")
+        let shell = std::env::var_os("SHELL")
             .and_then(|shell| PathBuf::from(shell).file_name().map(|name| name.to_owned()))
             .as_deref()
             .and_then(|name| name.to_str())
-        {
-            Some("zsh") => Ok(home.join(".zshrc")),
-            Some("bash") | None => Ok(home.join(".bashrc")),
+            .map(str::to_owned);
+        Ok(home.join(Self::shell_profile_name(shell.as_deref())?))
+    }
+
+    fn shell_profile_name(shell: Option<&str>) -> Result<&'static str> {
+        match shell {
+            Some("zsh") => Ok(".zshrc"),
+            Some("bash") | None => {
+                #[cfg(target_os = "macos")]
+                { Ok(".bash_profile") }
+                #[cfg(not(target_os = "macos"))]
+                { Ok(".bashrc") }
+            }
             Some(shell) => Err(JdkError::EnvError(format!(
                 "Shell {shell} is not supported; use bash or zsh to configure automatic Java switching"
             ))),
@@ -119,7 +129,7 @@ impl UnixEnvUpdater {
         Ok(())
     }
 
-    fn shell_quote(value: &str) -> String {
+    pub(crate) fn shell_quote(value: &str) -> String {
         format!("'{}'", value.replace('\'', "'\\''"))
     }
 
@@ -144,7 +154,7 @@ impl EnvUpdater for UnixEnvUpdater {
             "{}: {error}", path.display()
         )))?;
         let link = Self::link_path()?;
-        let rc_path = Self::get_shell_rc_path()?;
+        let rc_path = Self::shell_rc_path()?;
         let old_target = Self::switch_symlink_at(&link, &target)?;
         if let Err(error) = self.update_shell_rc_at(&rc_path, &link) {
             if let Err(restore) = Self::restore_symlink_at(&link, old_target.as_deref()) {
@@ -171,6 +181,15 @@ mod tests {
     fn shell_path_does_not_expand_special_characters() {
         assert_eq!(UnixEnvUpdater::shell_quote("/tmp/$HOME/`test`/a'b"),
             "'/tmp/$HOME/`test`/a'\\''b'");
+    }
+
+    #[test]
+    fn chooses_the_shell_startup_file() {
+        assert_eq!(UnixEnvUpdater::shell_profile_name(Some("zsh")).unwrap(), ".zshrc");
+        #[cfg(target_os = "macos")]
+        assert_eq!(UnixEnvUpdater::shell_profile_name(Some("bash")).unwrap(), ".bash_profile");
+        #[cfg(not(target_os = "macos"))]
+        assert_eq!(UnixEnvUpdater::shell_profile_name(Some("bash")).unwrap(), ".bashrc");
     }
 
     #[test]

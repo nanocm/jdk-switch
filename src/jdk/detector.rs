@@ -75,16 +75,16 @@ impl JdkDetector {
             return Ok(jdks);
         }
         
-        for entry in WalkDir::new(path)
-            .max_depth(5)
-            .follow_links(false)
-            .into_iter()
-            .filter_map(|e| e.ok())
-        {
+        let mut entries = WalkDir::new(path).max_depth(5).follow_links(false).into_iter();
+        while let Some(entry) = entries.next() {
+            let Ok(entry) = entry else { continue };
             let path = entry.path();
             if Self::is_valid_jdk(path) {
                 if let Some(info) = Self::get_jdk_info(path) {
                     jdks.push(info);
+                    // A JDK contains thousands of files. Its children cannot
+                    // be separate installations, so stop descending here.
+                    entries.skip_current_dir();
                 }
             }
         }

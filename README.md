@@ -43,9 +43,9 @@ jsh current       # Check the active Java
 
 After the **first** `jsh use`, reload your shell once so it picks up `jsh-current/bin`:
 
-| Windows | macOS / Linux |
-| :--- | :--- |
-| Reopen the terminal. | Run `source ~/.zshrc` or `source ~/.bashrc`. |
+| Windows | zsh | Bash on Linux | Bash on macOS |
+| :--- | :--- | :--- | :--- |
+| Reopen the terminal. | `source ~/.zshrc` | `source ~/.bashrc` | `source ~/.bash_profile` |
 
 Later switches take effect in the same open terminal. If another Java comes first on `PATH`, `jsh current` reports the mismatch.
 
@@ -67,7 +67,7 @@ jsh download 21 --vendor openjdk
 
 Official `openjdk` packages come from [jdk.java.net](https://jdk.java.net/) (JDK 12 and newer). Older releases are marked **archived** because those builds no longer receive security fixes.
 
-When a primary package link fails, `jsh` tries the [Tsinghua Adoptium mirror](https://mirrors.tuna.tsinghua.edu.cn/help/Adoptium/) for Temurin or the [Huawei Cloud OpenJDK mirror](https://mirrors.huaweicloud.com/openjdk/) for OpenJDK. Package availability varies by release and platform. The downloaded file must match the source's size and SHA-256; a different build under the same filename is rejected. Huawei Cloud's older [`java/jdk` installer archive](https://repo.huaweicloud.com/java/jdk/) is not used.
+When a primary package link fails, `jsh` tries the [Tsinghua Adoptium mirror](https://mirrors.tuna.tsinghua.edu.cn/help/Adoptium/) for Temurin or the [Huawei Cloud OpenJDK mirror](https://mirrors.huaweicloud.com/openjdk/) for OpenJDK. Availability varies by release and platform. Every archive must match the source's size and SHA-256.
 
 ## Put JDKs where you want
 
@@ -89,7 +89,7 @@ Create or edit `jsh_config.json` beside `jsh`:
 
 Relative paths start beside the executable. Absolute paths work too, for example `D:\Java\JDKs` on Windows or `/opt/jdks` on Unix. Changing `install_dir` does not move existing JDKs; `jsh list` still checks the original `jdks` directory.
 
-An existing jsh `config.json` is imported automatically on first run. The old file is kept as a backup; `jsh_config.json` takes precedence thereafter.
+An existing jsh `config.json` is imported automatically on first run and left in place. `jsh_config.json` takes precedence thereafter.
 
 ## Commands
 
@@ -97,7 +97,7 @@ An existing jsh `config.json` is imported automatically on first run. The old fi
 | :--- | :--- |
 | `jsh list` | List registered JDKs, managed directories, `scan_dirs`, and `JAVA_HOME`. |
 | `jsh list --scan` | Also search common system locations. |
-| `jsh list --prune` | Remove registrations whose paths are unavailable. |
+| `jsh list --prune` | Remove unavailable registrations; JDK files are untouched. |
 | `jsh search [keyword] [--vendor NAME]` | Search versions from one distribution. |
 | `jsh download <major> [--vendor NAME]` | Download, install, and register a JDK. |
 | `jsh use <version-or-ID>` | Switch to an installed JDK. |

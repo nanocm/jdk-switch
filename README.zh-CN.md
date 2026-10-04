@@ -43,9 +43,9 @@ jsh current       # 检查当前 Java
 
 **第一次**运行 `jsh use` 后，让终端重新加载一次 `jsh-current/bin`：
 
-| Windows | macOS / Linux |
-| :--- | :--- |
-| 重新打开终端。 | 运行 `source ~/.zshrc` 或 `source ~/.bashrc`。 |
+| Windows | zsh | Linux Bash | macOS Bash |
+| :--- | :--- | :--- | :--- |
+| 重新打开终端。 | `source ~/.zshrc` | `source ~/.bashrc` | `source ~/.bash_profile` |
 
 此后在同一个终端运行 `jsh use` 即可切换。如果 `PATH` 中其他 Java 排在前面，`jsh current` 会提示路径不一致。
 
@@ -67,7 +67,7 @@ jsh download 21 --vendor openjdk
 
 官方 `openjdk` 安装包来自 [jdk.java.net](https://jdk.java.net/)（JDK 12 及更新版本）。旧版本构建已不再接收安全修复，`jsh` 会将其标记为 **archived**。
 
-主下载地址失败时，Temurin 会尝试[清华 Adoptium 镜像](https://mirrors.tuna.tsinghua.edu.cn/help/Adoptium/)，OpenJDK 会尝试[华为云 OpenJDK 镜像](https://mirrors.huaweicloud.com/openjdk/)。安装包是否可用取决于版本和平台；文件必须与原始大小和 SHA-256 完全一致，同名但内容不同的包会被拒绝。华为云较旧的 [`java/jdk` 安装器存档](https://repo.huaweicloud.com/java/jdk/)未接入。
+主下载地址失败时，Temurin 会尝试[清华 Adoptium 镜像](https://mirrors.tuna.tsinghua.edu.cn/help/Adoptium/)，OpenJDK 会尝试[华为云 OpenJDK 镜像](https://mirrors.huaweicloud.com/openjdk/)。镜像包是否可用取决于版本和平台；每个下载文件都必须通过原始大小和 SHA-256 校验。
 
 ## 自定义 JDK 目录
 
@@ -89,7 +89,7 @@ jsh download 21 --vendor openjdk
 
 相对路径以可执行文件所在目录为基准；也支持绝对路径，例如 Windows 的 `D:\Java\JDKs` 或 Unix 的 `/opt/jdks`。修改 `install_dir` 不会移动已有 JDK；`jsh list` 仍会检查原来的 `jdks` 目录。
 
-首次运行时会自动导入旧版 jsh 的 `config.json`，旧文件会保留作为备份；此后优先读取 `jsh_config.json`。
+首次运行时会自动导入旧版 jsh 的 `config.json`，旧文件保持原样；此后优先读取 `jsh_config.json`。
 
 ## 命令
 
@@ -97,7 +97,7 @@ jsh download 21 --vendor openjdk
 | :--- | :--- |
 | `jsh list` | 列出已登记的 JDK，并检查托管目录、`scan_dirs` 和 `JAVA_HOME`。 |
 | `jsh list --scan` | 额外搜索常见系统位置。 |
-| `jsh list --prune` | 清理路径已失效的登记项。 |
+| `jsh list --prune` | 清理路径已失效的登记项，不删除 JDK 文件。 |
 | `jsh search [关键词] [--vendor 名称]` | 搜索指定发行版的可下载版本。 |
 | `jsh download <主版本> [--vendor 名称]` | 下载、安装并登记 JDK。 |
 | `jsh use <版本或ID>` | 切换到已安装的 JDK。 |
