@@ -1,13 +1,13 @@
-use crate::downloader::adoptium::AdoptiumSource;
-use crate::downloader::traits::{JdkPackage, JdkSource};
+use crate::downloader::traits::JdkPackage;
+use crate::downloader::Vendor;
 use crate::error::Result;
 use colored::Colorize;
 use std::collections::HashMap;
 
-pub async fn search_command(keyword: Option<String>) -> Result<()> {
+pub async fn search_command(keyword: Option<String>, vendor: Vendor) -> Result<()> {
     println!("{}", "Searching for available JDK versions...".cyan());
 
-    let source = AdoptiumSource::new()?;
+    let source = vendor.source()?;
     let mut packages = source.fetch_version().await?;
 
     println!(
@@ -60,10 +60,12 @@ pub async fn search_command(keyword: Option<String>) -> Result<()> {
 
         for pkg in pkgs {
             let size_mb = pkg.size / 1024 / 1024;
-            println!("    └─ {:8} {} {:>4}",
+            let archive_tag = if pkg.is_archived { " [archived]" } else { "" };
+            println!("    └─ {:8} {} {:>4}{}",
                      pkg.vendor.bright_black(),
                      pkg.version.white(),
-                     format!("[{} MB]", size_mb).bright_black()
+                     format!("[{} MB]", size_mb).bright_black(),
+                     archive_tag.yellow()
             );
         }
     }
@@ -71,7 +73,10 @@ pub async fn search_command(keyword: Option<String>) -> Result<()> {
     println!("\n{}", "-".repeat(80).bright_black());
     println!("Total: {} version(s)", versions.len());
     println!("\nUse: {} to download and install",
-             "jsh download <version>".green());
+             format!("jsh download <version> --vendor {}", vendor.as_str()).green());
+    if vendor == Vendor::Openjdk && versions.iter().any(|version| grouped[version][0].is_archived) {
+        println!("{}", "Archived OpenJDK builds lack current security updates; use a maintained vendor for older releases.".yellow());
+    }
 
     Ok(())
 }
@@ -98,10 +103,12 @@ mod tests {
             os: "windows".to_string(),
             arch: "x64".to_string(),
             download_url: String::new(),
+            mirror_urls: Vec::new(),
             size: 0,
             file_type: "zip".to_string(),
             is_lts: false,
             checksum: None,
+            is_archived: false,
         }
     }
 

@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-Installs a verified j-switch release for Windows x64.
+Installs a verified jdk-switch release for Windows x64.
 .EXAMPLE
 .\install.ps1 -InstallDir 'D:\Tools\jsh'
 .EXAMPLE

@@ -1,6 +1,6 @@
 [package]
-name = "j-switch"
-version = "0.4.1"
+name = "jdk-switch"
+version = "0.5.0"
 edition = "2024"
 rust-version = "1.88"
 authors = ["YiTouch contributors", "nanocm"]
@@ -30,6 +30,7 @@ async-trait = "0.1.89"
 sha2 = "0.10"
 tempfile = "3"
 fs2 = "0.4"
+roxmltree = "0.20"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.52"

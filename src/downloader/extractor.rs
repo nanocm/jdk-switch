@@ -42,13 +42,17 @@ impl Extractor {
                 None => continue,
             };
             if file.is_dir() {
-                fs::create_dir_all(&outpath).map_err(|e| JdkError::IoError(e))?;
+                fs::create_dir_all(&outpath).map_err(|error| JdkError::ExtractionError(
+                    format!("Cannot create {}: {error}", outpath.display())))?;
             } else {
                 if let Some(parent) = outpath.parent() {
-                    fs::create_dir_all(parent).map_err(|e| JdkError::IoError(e))?;
+                    fs::create_dir_all(parent).map_err(|error| JdkError::ExtractionError(
+                        format!("Cannot create {}: {error}", parent.display())))?;
                 }
-                let mut outfile = File::create(&outpath).map_err(|e| JdkError::IoError(e))?;
-                io::copy(&mut file, &mut outfile).map_err(|e| JdkError::IoError(e))?;
+                let mut outfile = File::create(&outpath).map_err(|error| JdkError::ExtractionError(
+                    format!("Cannot write {}: {error}", outpath.display())))?;
+                io::copy(&mut file, &mut outfile).map_err(|error| JdkError::ExtractionError(
+                    format!("Cannot extract {}: {error}", outpath.display())))?;
 
                 #[cfg(unix)]
                 {
@@ -81,7 +85,8 @@ impl Extractor {
     pub fn find_jdk_root(&self, base_dir: &Path) -> Result<PathBuf> {
         use walkdir::WalkDir;
         for entry in WalkDir::new(base_dir).max_depth(3) {
-            let entry = entry.map_err(|e| JdkError::IoError(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
+            let entry = entry.map_err(|error| JdkError::ExtractionError(format!(
+                "Cannot inspect JDK under {}: {error}", base_dir.display())))?;
             let path = entry.path();
 
             if JdkDetector::is_valid_jdk(path) {

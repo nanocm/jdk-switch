@@ -71,10 +71,15 @@ impl AdoptiumSource {
             os: asset.binary.os.clone(),
             arch: asset.binary.architecture.clone(),
             download_url: asset.binary.package.link.clone(),
+            mirror_urls: vec![format!(
+                "https://mirrors.tuna.tsinghua.edu.cn/Adoptium/{version}/jdk/{arch}/{os}/{}",
+                asset.binary.package.name
+            )],
             size: asset.binary.package.size,
-            file_type: get_file_type(&os).to_string(),
+            file_type: get_file_type(os).to_string(),
             is_lts: lts_versions.contains(&version),
             checksum: Some(asset.binary.package.checksum),
+            is_archived: false,
         })
     }
 }
@@ -109,6 +114,7 @@ struct Binary {
 }
 #[derive(Deserialize, Debug)]
 struct Package {
+    name: String,
     link: String,
     size: u64,
     // name: String,

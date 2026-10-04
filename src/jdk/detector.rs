@@ -212,6 +212,8 @@ impl JdkDetector {
         // appears in the version output of most vendors.
         if output.contains("Temurin") || output.contains("Eclipse") {
             vendor = Some("Eclipse Temurin".to_string());
+        } else if output.contains("Corretto") {
+            vendor = Some("Amazon Corretto".to_string());
         } else if output.contains("Zulu") {
             vendor = Some("Azul Zulu".to_string());
         } else if output.contains("Microsoft") {
@@ -260,6 +262,12 @@ OpenJDK 64-Bit Server VM Temurin-17.0.2+8 (build 17.0.2+8, mixed mode)"#;
         let (version, vendor, _) = JdkDetector::parse_version_output(output2);
         assert_eq!(version, "17");
         assert_eq!(vendor.as_deref(), Some("Eclipse Temurin"));
+
+        let corretto = "openjdk version \"1.8.0_504\"\nOpenJDK Runtime Environment Corretto-8.504.04.1 (build 1.8.0_504-b04)";
+        let (version, vendor, java_version) = JdkDetector::parse_version_output(corretto);
+        assert_eq!(version, "8");
+        assert_eq!(vendor.as_deref(), Some("Amazon Corretto"));
+        assert_eq!(java_version.as_deref(), Some("1.8.0_504"));
     }
 
     #[cfg(target_os = "windows")]

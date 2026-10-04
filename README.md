@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <strong>Find a JDK. Install Temurin. Switch Java from your terminal.</strong>
+  <strong>Find a JDK. Choose a distribution. Switch Java from your terminal.</strong>
 </p>
 
 <p align="center">
@@ -36,7 +36,7 @@ Windows defaults to `%LOCALAPPDATA%\Programs\jsh`; Unix defaults to `~/.local/bi
 
 ```console
 jsh list          # Find installed JDKs
-jsh download 21   # Install Eclipse Temurin 21
+jsh download 21   # Install Eclipse Temurin 21 (default)
 jsh use 21        # Select it
 jsh current       # Check the active Java
 ```
@@ -48,6 +48,26 @@ After the **first** `jsh use`, reload your shell once so it picks up `jsh-curren
 | Reopen the terminal. | Run `source ~/.zshrc` or `source ~/.bashrc`. |
 
 Later switches take effect in the same open terminal. If another Java comes first on `PATH`, `jsh current` reports the mismatch.
+
+## Choose a distribution
+
+```console
+jsh search 21 --vendor zulu
+jsh download 21 --vendor corretto
+jsh download 21 --vendor zulu
+jsh download 21 --vendor openjdk
+```
+
+| `--vendor` | Distribution | Package source |
+| :--- | :--- | :--- |
+| `temurin` (default) | Eclipse Temurin | Eclipse Adoptium |
+| `corretto` | Amazon Corretto | Amazon Corretto |
+| `zulu` | Azul Zulu | Azul metadata and CDN |
+| `openjdk` | Official OpenJDK builds | `jdk.java.net` |
+
+Official `openjdk` packages come from [jdk.java.net](https://jdk.java.net/) (JDK 12 and newer). Older releases are marked **archived** because those builds no longer receive security fixes.
+
+When a primary package link fails, `jsh` tries the [Tsinghua Adoptium mirror](https://mirrors.tuna.tsinghua.edu.cn/help/Adoptium/) for Temurin or the [Huawei Cloud OpenJDK mirror](https://mirrors.huaweicloud.com/openjdk/) for OpenJDK. Package availability varies by release and platform. The downloaded file must match the source's size and SHA-256; a different build under the same filename is rejected. Huawei Cloud's older [`java/jdk` installer archive](https://repo.huaweicloud.com/java/jdk/) is not used.
 
 ## Put JDKs where you want
 
@@ -78,12 +98,12 @@ An existing jsh `config.json` is imported automatically on first run. The old fi
 | `jsh list` | List registered JDKs, managed directories, `scan_dirs`, and `JAVA_HOME`. |
 | `jsh list --scan` | Also search common system locations. |
 | `jsh list --prune` | Remove registrations whose paths are unavailable. |
-| `jsh search [keyword]` | Search downloadable Temurin versions. |
-| `jsh download <major>` | Download, install, and register a JDK. |
+| `jsh search [keyword] [--vendor NAME]` | Search versions from one distribution. |
+| `jsh download <major> [--vendor NAME]` | Download, install, and register a JDK. |
 | `jsh use <version-or-ID>` | Switch to an installed JDK. |
 | `jsh current` | Show the active Java and detect a `PATH` mismatch. |
 
-Multiple installations of the same version keep separate IDs. Use the ID shown by `jsh list` when a version is ambiguous. Downloads currently use Eclipse Temurin.
+Multiple installations of the same version keep separate IDs. Use the ID shown by `jsh list` when a version is ambiguous.
 
 <details>
 <summary>Build from source</summary>

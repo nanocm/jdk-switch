@@ -50,10 +50,10 @@ async fn run() -> error::Result<()> {
             commands::use_command(&version)?;
         }
         Commands::Download { version, vendor } => {
-            commands::download_command(&version, &vendor).await?;
+            commands::download_command(&version, vendor).await?;
         }
-        Commands::Search { keyword } => {
-            commands::search_command(keyword).await?;
+        Commands::Search { keyword, vendor } => {
+            commands::search_command(keyword, vendor).await?;
         }
     }
     Ok(())
