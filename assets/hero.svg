@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 380" role="img" aria-labelledby="title desc">
-  <title id="title">j-switch</title>
-  <desc id="desc">A terminal workflow for listing, downloading, and switching JDKs with jsh.</desc>
+  <title id="title">jdk-switch</title>
+  <desc id="desc">jdk-switch: list, download, and switch JDKs with jsh.</desc>
   <defs>
     <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#101c32"/>
@@ -23,7 +23,7 @@
 
   <rect x="58" y="52" width="47" height="47" rx="13" fill="url(#accent)"/>
   <text x="81.5" y="86" text-anchor="middle" font-family="Arial, sans-serif" font-size="31" font-weight="700" fill="#08172b">J</text>
-  <text x="124" y="84" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#f4f8ff">j-switch</text>
+  <text x="124" y="84" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#f4f8ff">jdk-switch</text>
   <text x="60" y="158" font-family="Arial, sans-serif" font-size="14" font-weight="700" letter-spacing="3" fill="#76bccc">JDK MANAGER</text>
   <text x="53" y="260" font-family="Arial, sans-serif" font-size="112" font-weight="700" letter-spacing="-8" fill="#f5f8ff">jsh</text>
   <rect x="60" y="294" width="436" height="1" fill="#46627e" opacity=".8"/>

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/hero.svg" alt="j-switch: list, download, and switch JDKs from your terminal" width="100%">
+  <img src="assets/hero.svg" alt="jdk-switch: list, download, and switch JDKs from your terminal" width="100%">
 </p>
 
 <p align="center">
