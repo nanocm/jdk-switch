@@ -30,13 +30,14 @@ impl Downloader {
     pub async fn download_file<F>(
         &self,
         url: &str,
+        mirror_urls: &[String],
         filename: &str,
         expected_size: u64,
         checksum: Option<&str>,
         on_progress: F,
     ) -> Result<PathBuf>
     where
-        F: Fn(u64, u64) + Send + 'static,
+        F: Fn(u64, u64) + Send + Sync + 'static,
     {
         if Path::new(filename).file_name().and_then(|s| s.to_str()) != Some(filename) {
             return Err(JdkError::DownloadError("Invalid archive filename".to_string()));
@@ -47,10 +48,42 @@ impl Downloader {
             return Ok(target_path);
         }
 
+        let mut failures = Vec::new();
+        for source_url in std::iter::once(url).chain(mirror_urls.iter().map(String::as_str)) {
+            if source_url != url { println!("Trying mirror: {source_url}"); }
+            match self.download_from(source_url, &target_path, expected_size, checksum, &on_progress).await {
+                Ok(path) => return Ok(path),
+                Err(error) => failures.push(format!("{source_url}: {error}")),
+            }
+        }
+        Err(JdkError::DownloadError(format!(
+            "All download sources failed:\n  {}", failures.join("\n  ")
+        )))
+    }
+
+    async fn download_from<F>(
+        &self,
+        url: &str,
+        target_path: &Path,
+        expected_size: u64,
+        checksum: Option<&str>,
+        on_progress: &F,
+    ) -> Result<PathBuf>
+    where
+        F: Fn(u64, u64) + Send + Sync,
+    {
         let response = self.client.get(url).send().await
             .map_err(|e| JdkError::NetworkError(e.to_string()))?
             .error_for_status()
             .map_err(|e| JdkError::NetworkError(e.to_string()))?;
+        // Mirrors can contain a different build under the same filename. Do
+        // not transfer the whole archive when its length already disagrees
+        // with the package metadata from the authoritative source.
+        if let Some(size) = response.content_length() && size != expected_size {
+            return Err(JdkError::DownloadError(format!(
+                "Archive size mismatch at {url}: expected {expected_size} bytes, found {size} bytes"
+            )));
+        }
         let part_path = tempfile::Builder::new().prefix(".jsh-download-")
             .suffix(".part").tempfile_in(&self.download_dir)?.into_temp_path();
         let mut file = File::create(&part_path).await?;
@@ -66,12 +99,19 @@ impl Downloader {
                     return Err(JdkError::NetworkError(e.to_string()));
                 }
             };
+            let next_size = downloaded.checked_add(chunk.len() as u64)
+                .ok_or_else(|| JdkError::DownloadError(format!("Archive is too large: {url}")))?;
+            if next_size > expected_size {
+                return Err(JdkError::DownloadError(format!(
+                    "Archive is larger than expected at {url}: expected {expected_size} bytes"
+                )));
+            }
             if let Err(e) = file.write_all(&chunk).await {
                 drop(file);
                 return Err(JdkError::IoError(e));
             }
             hasher.update(&chunk);
-            downloaded += chunk.len() as u64;
+            downloaded = next_size;
             on_progress(downloaded, expected_size);
         }
         file.flush().await?;
@@ -80,19 +120,19 @@ impl Downloader {
         let actual_checksum = format!("{:x}", hasher.finalize());
         if downloaded != expected_size || checksum.is_some_and(|value| !actual_checksum.eq_ignore_ascii_case(value)) {
             return Err(JdkError::DownloadError(format!(
-                "Downloaded archive failed size or SHA-256 verification: {}", target_path.display()
+                "Downloaded archive failed size or SHA-256 verification: {}", url
             )));
         }
         if Self::verify_file(&target_path, expected_size, checksum)? {
-            return Ok(target_path);
+            return Ok(target_path.to_path_buf());
         }
         if let Err(error) = part_path.persist(&target_path) {
             if Self::verify_file(&target_path, expected_size, checksum)? {
-                return Ok(target_path);
+                return Ok(target_path.to_path_buf());
             }
             return Err(JdkError::DownloadError(format!("Cannot save verified archive: {error}")));
         }
-        Ok(target_path)
+        Ok(target_path.to_path_buf())
     }
 
     fn verify_file(path: &Path, expected_size: u64, checksum: Option<&str>) -> Result<bool> {
@@ -124,5 +164,69 @@ mod tests {
         assert!(Downloader::verify_file(&archive, 3, Some(checksum)).unwrap());
         assert!(!Downloader::verify_file(&archive, 4, Some(checksum)).unwrap());
         assert!(!Downloader::verify_file(&archive, 3, Some(&"0".repeat(64))).unwrap());
+    }
+
+    #[tokio::test]
+    async fn falls_back_to_a_mirror_and_verifies_the_archive() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let dir = tempfile::tempdir().unwrap();
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base = format!("http://{}", listener.local_addr().unwrap());
+        let server = tokio::spawn(async move {
+            for _ in 0..2 {
+                let (mut stream, _) = listener.accept().await.unwrap();
+                let mut request = [0_u8; 1024];
+                let count = stream.read(&mut request).await.unwrap();
+                let response = if String::from_utf8_lossy(&request[..count]).contains("/primary") {
+                    "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+                } else {
+                    "HTTP/1.1 200 OK\r\nContent-Length: 3\r\nConnection: close\r\n\r\nabc"
+                };
+                stream.write_all(response.as_bytes()).await.unwrap();
+            }
+        });
+        let downloader = Downloader {
+            client: Client::new(),
+            download_dir: dir.path().to_path_buf(),
+        };
+        let checksum = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
+        let path = downloader.download_file(
+            &format!("{base}/primary"), &[format!("{base}/mirror")],
+            "jdk.zip", 3, Some(checksum), |_, _| {},
+        ).await.unwrap();
+        server.await.unwrap();
+        assert_eq!(std::fs::read(path).unwrap(), b"abc");
+    }
+
+    #[tokio::test]
+    async fn rejects_a_mirror_with_the_wrong_archive_size_before_reading_it() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let dir = tempfile::tempdir().unwrap();
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base = format!("http://{}", listener.local_addr().unwrap());
+        let server = tokio::spawn(async move {
+            for _ in 0..2 {
+                let (mut stream, _) = listener.accept().await.unwrap();
+                let mut request = [0_u8; 1024];
+                let count = stream.read(&mut request).await.unwrap();
+                let response = if String::from_utf8_lossy(&request[..count]).contains("/primary") {
+                    "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+                } else {
+                    "HTTP/1.1 200 OK\r\nContent-Length: 4\r\nConnection: close\r\n\r\n"
+                };
+                stream.write_all(response.as_bytes()).await.unwrap();
+            }
+        });
+        let downloader = Downloader {
+            client: Client::new(),
+            download_dir: dir.path().to_path_buf(),
+        };
+        let error = downloader.download_file(
+            &format!("{base}/primary"), &[format!("{base}/mirror")],
+            "jdk.zip", 3, None, |_, _| {},
+        ).await.unwrap_err();
+        server.await.unwrap();
+        assert!(error.to_string().contains("Archive size mismatch"));
+        assert!(!dir.path().join("jdk.zip").exists());
     }
 }

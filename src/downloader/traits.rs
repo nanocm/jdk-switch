@@ -76,6 +76,10 @@ pub struct JdkPackage {
 
     pub download_url: String,
 
+    /// Optional mirrors of the same archive, checked against the same SHA-256.
+    #[serde(default)]
+    pub mirror_urls: Vec<String>,
+
     /// file size（bytes）
     pub size: u64,
 
@@ -86,4 +90,8 @@ pub struct JdkPackage {
 
     /// SHA256 check sum
     pub checksum: Option<String>,
+
+    /// The official OpenJDK archive is not updated with security fixes.
+    #[serde(default)]
+    pub is_archived: bool,
 }

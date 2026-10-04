@@ -7,7 +7,7 @@ on:
 jobs:
   windows-jdk8:
     runs-on: windows-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - name: Install Java 17 for switching test
@@ -65,14 +65,40 @@ jobs:
           if ($current | Select-String -SimpleMatch 'java on PATH resolves to') {
             throw "jsh current reports a PATH mismatch"
           }
+          & $jsh download 8 --vendor corretto
+          if ($LASTEXITCODE -ne 0) { throw "Corretto 8 download failed" }
+          $list = & $jsh list
+          if ($LASTEXITCODE -ne 0 -or -not ($list | Select-String -SimpleMatch 'jdk-corretto-')) {
+            throw "Corretto 8 is missing from jsh list"
+          }
+          $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
+          $corretto = @($config.jdks.PSObject.Properties | Where-Object {
+            $_.Value.path -match '[\\/]jdk-corretto-'
+          })
+          if ($corretto.Count -ne 1) { throw "Expected one Corretto registration, found $($corretto.Count)" }
+          & $jsh use $corretto[0].Name
+          if ($LASTEXITCODE -ne 0) { throw "jsh use Corretto ID failed" }
+          $javaVersion = (& java.exe -version 2>&1 | Out-String)
+          if ($LASTEXITCODE -ne 0 -or $javaVersion -notmatch 'Corretto') {
+            throw "Open terminal still uses the wrong vendor: $javaVersion"
+          }
+          & $jsh use 8 *> $null
+          if ($LASTEXITCODE -eq 0) { throw "jsh use 8 accepted ambiguous JDKs" }
+          $global:LASTEXITCODE = 0
 
   real-jdk:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-15-intel, macos-latest]
+        include:
+          - os: ubuntu-latest
+            vendor: zulu
+          - os: macos-15-intel
+            vendor: openjdk
+          - os: macos-latest
+            vendor: corretto
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - name: Confirm ARM64 runner
@@ -87,4 +113,6 @@ jobs:
         run: cargo build --release --locked
       - name: Download Java 21 and switch real JDKs
         shell: bash
+        env:
+          JSH_EXTRA_VENDOR: ${{ matrix.vendor }}
         run: bash scripts/smoke-unix.sh

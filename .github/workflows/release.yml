@@ -78,4 +78,4 @@ jobs:
         run: |
           cp scripts/install.sh scripts/install.ps1 dist/
           (cd dist && sha256sum jsh-* install.sh install.ps1 > SHA256SUMS.txt)
-          gh release create "$GITHUB_REF_NAME" dist/* --title "j-switch $GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md --verify-tag
+          gh release create "$GITHUB_REF_NAME" dist/* --title "jdk-switch $GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md --verify-tag

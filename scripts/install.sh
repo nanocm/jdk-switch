@@ -9,7 +9,7 @@ path_option_count=0
 
 usage() {
   cat <<'EOF'
-Install a j-switch GitHub release for Linux x64 or macOS x64/ARM64.
+Install a jdk-switch GitHub release for Linux x64 or macOS x64/ARM64.
 
 Usage: bash install.sh [--dir DIRECTORY] [--version TAG]
                        [--add-to-path | --skip-path]
@@ -142,7 +142,7 @@ if [[ -n $profile ]]; then
   path_line="export PATH=$quoted:\"\$PATH\""
   touch -- "$profile"
   if ! grep -Fqx -- "$path_line" "$profile"; then
-    printf '\n# Added by the j-switch installer\n%s\n' "$path_line" >> "$profile"
+    printf '\n# Added by the jdk-switch installer\n%s\n' "$path_line" >> "$profile"
   fi
   printf 'Added %s to %s. Reload it or open a new terminal.\n' "$install_dir" "$profile"
 elif ! path_contains_dir; then

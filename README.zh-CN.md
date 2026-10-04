@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <strong>发现本机 JDK，下载 Temurin，在终端切换 Java。</strong>
+  <strong>发现本机 JDK，选择发行版，在终端切换 Java。</strong>
 </p>
 
 <p align="center">
@@ -36,7 +36,7 @@ Windows 默认安装到 `%LOCALAPPDATA%\Programs\jsh`，Unix 默认安装到 `~/
 
 ```console
 jsh list          # 查找已安装的 JDK
-jsh download 21   # 安装 Eclipse Temurin 21
+jsh download 21   # 安装 Eclipse Temurin 21（默认）
 jsh use 21        # 切换版本
 jsh current       # 检查当前 Java
 ```
@@ -48,6 +48,26 @@ jsh current       # 检查当前 Java
 | 重新打开终端。 | 运行 `source ~/.zshrc` 或 `source ~/.bashrc`。 |
 
 此后在同一个终端运行 `jsh use` 即可切换。如果 `PATH` 中其他 Java 排在前面，`jsh current` 会提示路径不一致。
+
+## 选择 JDK 发行版
+
+```console
+jsh search 21 --vendor zulu
+jsh download 21 --vendor corretto
+jsh download 21 --vendor zulu
+jsh download 21 --vendor openjdk
+```
+
+| `--vendor` | 发行版 | 安装包来源 |
+| :--- | :--- | :--- |
+| `temurin`（默认） | Eclipse Temurin | Eclipse Adoptium |
+| `corretto` | Amazon Corretto | Amazon Corretto |
+| `zulu` | Azul Zulu | Azul 元数据 API 与 CDN |
+| `openjdk` | 官方 OpenJDK 构建 | `jdk.java.net` |
+
+官方 `openjdk` 安装包来自 [jdk.java.net](https://jdk.java.net/)（JDK 12 及更新版本）。旧版本构建已不再接收安全修复，`jsh` 会将其标记为 **archived**。
+
+主下载地址失败时，Temurin 会尝试[清华 Adoptium 镜像](https://mirrors.tuna.tsinghua.edu.cn/help/Adoptium/)，OpenJDK 会尝试[华为云 OpenJDK 镜像](https://mirrors.huaweicloud.com/openjdk/)。安装包是否可用取决于版本和平台；文件必须与原始大小和 SHA-256 完全一致，同名但内容不同的包会被拒绝。华为云较旧的 [`java/jdk` 安装器存档](https://repo.huaweicloud.com/java/jdk/)未接入。
 
 ## 自定义 JDK 目录
 
@@ -78,12 +98,12 @@ jsh current       # 检查当前 Java
 | `jsh list` | 列出已登记的 JDK，并检查托管目录、`scan_dirs` 和 `JAVA_HOME`。 |
 | `jsh list --scan` | 额外搜索常见系统位置。 |
 | `jsh list --prune` | 清理路径已失效的登记项。 |
-| `jsh search [关键词]` | 搜索可下载的 Temurin 版本。 |
-| `jsh download <主版本>` | 下载、安装并登记 JDK。 |
+| `jsh search [关键词] [--vendor 名称]` | 搜索指定发行版的可下载版本。 |
+| `jsh download <主版本> [--vendor 名称]` | 下载、安装并登记 JDK。 |
 | `jsh use <版本或ID>` | 切换到已安装的 JDK。 |
 | `jsh current` | 显示当前 Java，并检查 `PATH` 是否一致。 |
 
-相同版本的多个安装会保留不同 ID。版本有歧义时，请使用 `jsh list` 显示的 ID。目前只支持从 Eclipse Temurin 下载。
+相同版本的多个安装会保留不同 ID。版本有歧义时，请使用 `jsh list` 显示的 ID。
 
 <details>
 <summary>从源码构建</summary>

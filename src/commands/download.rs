@@ -1,28 +1,21 @@
 use crate::config::Config;
-use crate::downloader::adoptium::AdoptiumSource;
 use crate::downloader::downloader::Downloader;
 use crate::downloader::extractor::Extractor;
 use crate::downloader::progress::ProgressDisplay;
-use crate::downloader::traits::{JdkPackage, JdkSource};
+use crate::downloader::traits::JdkPackage;
+use crate::downloader::Vendor;
 use crate::error::{JdkError, Result};
 use crate::jdk::JdkManager;
 use crate::jdk::detector::JdkDetector;
 use colored::Colorize;
 use std::path::Path;
 
-pub async fn download_command(version: &str, vendor: &str) -> Result<()> {
+pub async fn download_command(version: &str, vendor: Vendor) -> Result<()> {
     println!("  Version: {version}");
-    println!("  Vendor: {vendor}");
+    println!("  Vendor: {}", vendor.as_str());
     println!("{}", format!("Searching for JDK {version}...").cyan());
 
-    let source: Box<dyn JdkSource> = match vendor.to_lowercase().as_str() {
-        "temurin" | "adoptium" => Box::new(AdoptiumSource::new()?),
-        _ => {
-            return Err(JdkError::DownloadError(format!(
-                "Unsupported vendor '{vendor}'. Available vendor: temurin"
-            )));
-        }
-    };
+    let source = vendor.source()?;
     let version_num: u32 = version.parse()
         .map_err(|_| JdkError::InvalidVersion(version.to_string()))?;
     let package = source.find_package(version_num).await?;
@@ -34,6 +27,9 @@ pub async fn download_command(version: &str, vendor: &str) -> Result<()> {
     println!("  Platform:    {} ({})", package.os, package.arch);
     println!("  File type:   {}", package.file_type);
     if package.is_lts { println!("  Support:     {}", "LTS (Long Term Support)".green()); }
+    if package.is_archived {
+        println!("{}", "  Warning:     Archived OpenJDK build; it no longer receives security fixes.".yellow());
+    }
 
     let extractor = Extractor::new();
     let install_base = Config::load()?.install_dir()?;
@@ -52,6 +48,7 @@ pub async fn download_command(version: &str, vendor: &str) -> Result<()> {
         let downloader = Downloader::new()?;
         let archive_path = downloader.download_file(
             &package.download_url,
+            &package.mirror_urls,
             &filename,
             package.size,
             package.checksum.as_deref(),
@@ -62,12 +59,14 @@ pub async fn download_command(version: &str, vendor: &str) -> Result<()> {
         println!("\n{}", "Extracting...".cyan());
         // A failed extraction leaves only a temporary directory. An existing
         // installation is never overwritten by files from another archive.
-        let staging = tempfile::Builder::new().prefix(".jsh-staging-").tempdir_in(&install_base)?;
+        let staging = tempfile::Builder::new().prefix(".jsh-staging-").tempdir_in(&install_base)
+            .map_err(|error| JdkError::ExtractionError(format!(
+                "Cannot create staging directory in {}: {error}", install_base.display())))?;
         let staged_root = extractor.extract(&archive_path, staging.path())?;
         verify_installed_jdk(&staged_root, &package)?;
         let relative_root = staged_root.strip_prefix(staging.path())
             .map_err(|e| JdkError::ExtractionError(e.to_string()))?;
-        let installed_root = match std::fs::rename(staging.path(), &install_dir) {
+        let installed_root = match move_staging(staging.path(), &install_dir).await {
             Ok(()) => install_dir.join(relative_root),
             Err(_) if install_dir.exists() => {
                 // Another download command may have installed the same release.
@@ -75,7 +74,8 @@ pub async fn download_command(version: &str, vendor: &str) -> Result<()> {
                 verify_installed_jdk(&existing, &package)?;
                 existing
             }
-            Err(error) => return Err(JdkError::IoError(error)),
+            Err(error) => return Err(JdkError::ExtractionError(format!(
+                "Cannot move {} to {}: {error}", staging.path().display(), install_dir.display()))),
         };
         println!("{}", format!("[OK] Extracted to: {}", installed_root.display()).green());
         installed_root
@@ -89,6 +89,25 @@ pub async fn download_command(version: &str, vendor: &str) -> Result<()> {
     println!("  1. List all JDKs:    {}", "jsh list".cyan());
     println!("  2. Activate this JDK: {}", format!("jsh use {id}").cyan());
     Ok(())
+}
+
+async fn move_staging(from: &Path, to: &Path) -> std::io::Result<()> {
+    let mut delay = std::time::Duration::from_millis(150);
+    for attempt in 0..10 {
+        match std::fs::rename(from, to) {
+            Err(error) if cfg!(windows)
+                && error.kind() == std::io::ErrorKind::PermissionDenied
+                && !to.exists() && attempt < 9 => {
+                    // Virus scanners can briefly hold a newly extracted Java
+                    // executable open on Windows. Keep the staged install
+                    // intact while the file handle is released.
+                    tokio::time::sleep(delay).await;
+                    delay = (delay * 2).min(std::time::Duration::from_secs(2));
+                }
+            result => return result,
+        }
+    }
+    unreachable!()
 }
 
 fn safe_component(value: &str) -> String {
@@ -116,7 +135,9 @@ fn verify_installed_jdk(path: &Path, package: &JdkPackage) -> Result<()> {
         )));
     }
     let expected = expected_java_version(package);
-    if actual.java_version.as_deref() != Some(expected.as_str()) {
+    if !actual.java_version.as_deref().is_some_and(|version| {
+        java_version_matches(version, &expected, package)
+    }) {
         return Err(JdkError::ExtractionError(format!(
             "Expected Java version {expected}, found {} at {}",
             actual.java_version.as_deref().unwrap_or("unknown"), path.display()
@@ -128,12 +149,32 @@ fn verify_installed_jdk(path: &Path, package: &JdkPackage) -> Result<()> {
 fn expected_java_version(package: &JdkPackage) -> String {
     let reported = package.runtime_version.as_deref().unwrap_or(&package.version);
     let version = reported.split(['+', '-']).next().unwrap_or(reported);
-    if package.major_version == 8 {
-        if let Some(update) = version.strip_prefix("8.0.") {
-            return format!("1.8.0_{update}");
-        }
+    if package.major_version == 8 && let Some(update) = version.strip_prefix("8.0.") {
+        return format!("1.8.0_{update}");
     }
     version.to_string()
+}
+
+fn java_version_matches(actual: &str, expected: &str, package: &JdkPackage) -> bool {
+    if actual == expected {
+        return true;
+    }
+    if package.vendor != "corretto" || package.major_version < 9 {
+        return false;
+    }
+    // Corretto's release name identifies the upstream feature, interim, and
+    // security version, but does not consistently encode the optional fourth
+    // Java version component across platforms.
+    let numbers = |value: &str| {
+        value.split('.').map(str::parse::<u32>)
+            .collect::<std::result::Result<Vec<_>, _>>()
+    };
+    let (Ok(actual), Ok(expected)) = (numbers(actual), numbers(expected)) else {
+        return false;
+    };
+    actual.len() <= 4 && (0..3).all(|index| {
+        actual.get(index).copied().unwrap_or(0) == expected.get(index).copied().unwrap_or(0)
+    })
 }
 
 #[cfg(test)]
@@ -147,13 +188,36 @@ mod tests {
             runtime_version: Some("1.8.0_504-b01".to_string()),
             vendor: "temurin".to_string(), os: "windows".to_string(),
             arch: "x64".to_string(), download_url: String::new(),
+            mirror_urls: Vec::new(),
             size: 0, file_type: "zip".to_string(), is_lts: true,
-            checksum: None,
+            checksum: None, is_archived: false,
         };
         assert_eq!(expected_java_version(&package), "1.8.0_504");
         package.version = "21.0.12+101.0.LTS".to_string();
         package.runtime_version = Some("21.0.12.1+1-LTS".to_string());
         package.major_version = 21;
         assert_eq!(expected_java_version(&package), "21.0.12.1");
+    }
+
+    #[test]
+    fn corretto_runtime_accepts_a_fourth_java_version_component() {
+        let package = JdkPackage {
+            version: "21.0.12.12.1".to_string(),
+            runtime_version: Some("21.0.12".to_string()),
+            major_version: 21,
+            vendor: "corretto".to_string(),
+            os: "mac".to_string(),
+            arch: "aarch64".to_string(),
+            download_url: String::new(),
+            mirror_urls: Vec::new(),
+            size: 0,
+            file_type: "tar.gz".to_string(),
+            is_lts: true,
+            checksum: None,
+            is_archived: false,
+        };
+        assert!(java_version_matches("21.0.12.1", "21.0.12", &package));
+        assert!(!java_version_matches("21.0.13", "21.0.12", &package));
+        assert!(!java_version_matches("22.0.12.1", "21.0.12", &package));
     }
 }
