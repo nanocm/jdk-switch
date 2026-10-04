@@ -1,13 +1,9 @@
-# jdk-switch v0.5.1
+# jdk-switch v0.5.2
 
-- Fixed automatic Java switching in macOS Bash login shells.
-- Made `jsh list` stop scanning inside a JDK after finding its root directory.
-- Required a valid source SHA-256 before installing a downloaded JDK.
-- Refined the English and Chinese setup and mirror documentation.
+- Added a quick start and configuration pointer to `jsh help`.
+- Expanded command help with examples, selection rules, and JDK distribution names.
 
 ## 中文
 
-- 修复 macOS Bash 登录终端中的 Java 自动切换。
-- `jsh list` 识别 JDK 根目录后不再遍历其内部文件。
-- 下载 JDK 前必须取得有效的来源 SHA-256 校验值。
-- 精简中英文安装与镜像说明。
+- `jsh help` 新增快速上手步骤和配置文件位置。
+- 子命令帮助补充示例、版本选择规则和 JDK 发行版名称。

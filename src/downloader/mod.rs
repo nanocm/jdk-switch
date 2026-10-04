@@ -13,12 +13,13 @@ use traits::JdkSource;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
 pub enum Vendor {
-    #[value(alias = "adoptium")]
+    #[value(alias = "adoptium", help = "Eclipse Temurin")]
     Temurin,
-    #[value(alias = "amazon")]
+    #[value(alias = "amazon", help = "Amazon Corretto")]
     Corretto,
-    #[value(alias = "azul")]
+    #[value(alias = "azul", help = "Azul Zulu")]
     Zulu,
+    #[value(help = "Official OpenJDK builds from jdk.java.net")]
     Openjdk,
 }
 
