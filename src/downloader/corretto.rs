@@ -113,7 +113,14 @@ fn runtime_version(version: &str, major: u32) -> Option<String> {
     if major == 8 {
         return parts.get(1).map(|update| format!("1.8.0_{update}"));
     }
-    (parts.len() >= 3).then(|| parts[..3].join("."))
+    if parts.len() < 3 {
+        return None;
+    }
+    let mut java_parts = parts[..3].to_vec();
+    while java_parts.len() > 1 && java_parts.last() == Some(&"0") {
+        java_parts.pop();
+    }
+    Some(java_parts.join("."))
 }
 
 #[async_trait]
@@ -162,5 +169,6 @@ mod tests {
             runtime_version("21.0.12.12.1", 21).as_deref(),
             Some("21.0.12")
         );
+        assert_eq!(runtime_version("27.0.0.35.1", 27).as_deref(), Some("27"));
     }
 }

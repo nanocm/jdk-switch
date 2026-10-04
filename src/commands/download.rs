@@ -135,7 +135,9 @@ fn verify_installed_jdk(path: &Path, package: &JdkPackage) -> Result<()> {
         )));
     }
     let expected = expected_java_version(package);
-    if actual.java_version.as_deref() != Some(expected.as_str()) {
+    if !actual.java_version.as_deref().is_some_and(|version| {
+        java_version_matches(version, &expected, package)
+    }) {
         return Err(JdkError::ExtractionError(format!(
             "Expected Java version {expected}, found {} at {}",
             actual.java_version.as_deref().unwrap_or("unknown"), path.display()
@@ -151,6 +153,28 @@ fn expected_java_version(package: &JdkPackage) -> String {
         return format!("1.8.0_{update}");
     }
     version.to_string()
+}
+
+fn java_version_matches(actual: &str, expected: &str, package: &JdkPackage) -> bool {
+    if actual == expected {
+        return true;
+    }
+    if package.vendor != "corretto" || package.major_version < 9 {
+        return false;
+    }
+    // Corretto's release name identifies the upstream feature, interim, and
+    // security version, but does not consistently encode the optional fourth
+    // Java version component across platforms.
+    let numbers = |value: &str| {
+        value.split('.').map(str::parse::<u32>)
+            .collect::<std::result::Result<Vec<_>, _>>()
+    };
+    let (Ok(actual), Ok(expected)) = (numbers(actual), numbers(expected)) else {
+        return false;
+    };
+    actual.len() <= 4 && (0..3).all(|index| {
+        actual.get(index).copied().unwrap_or(0) == expected.get(index).copied().unwrap_or(0)
+    })
 }
 
 #[cfg(test)]
@@ -173,5 +197,27 @@ mod tests {
         package.runtime_version = Some("21.0.12.1+1-LTS".to_string());
         package.major_version = 21;
         assert_eq!(expected_java_version(&package), "21.0.12.1");
+    }
+
+    #[test]
+    fn corretto_runtime_accepts_a_fourth_java_version_component() {
+        let package = JdkPackage {
+            version: "21.0.12.12.1".to_string(),
+            runtime_version: Some("21.0.12".to_string()),
+            major_version: 21,
+            vendor: "corretto".to_string(),
+            os: "mac".to_string(),
+            arch: "aarch64".to_string(),
+            download_url: String::new(),
+            mirror_urls: Vec::new(),
+            size: 0,
+            file_type: "tar.gz".to_string(),
+            is_lts: true,
+            checksum: None,
+            is_archived: false,
+        };
+        assert!(java_version_matches("21.0.12.1", "21.0.12", &package));
+        assert!(!java_version_matches("21.0.13", "21.0.12", &package));
+        assert!(!java_version_matches("22.0.12.1", "21.0.12", &package));
     }
 }

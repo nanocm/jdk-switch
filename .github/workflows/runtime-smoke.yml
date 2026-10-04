@@ -84,6 +84,7 @@ jobs:
           }
           & $jsh use 8 *> $null
           if ($LASTEXITCODE -eq 0) { throw "jsh use 8 accepted ambiguous JDKs" }
+          $global:LASTEXITCODE = 0
 
   real-jdk:
     strategy:
