@@ -19,6 +19,11 @@ pub async fn download_command(version: &str, vendor: Vendor) -> Result<()> {
     let version_num: u32 = version.parse()
         .map_err(|_| JdkError::InvalidVersion(version.to_string()))?;
     let package = source.find_package(version_num).await?;
+    let checksum = package.checksum.as_deref()
+        .filter(|value| value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit()))
+        .ok_or_else(|| JdkError::DownloadError(
+            "Package source did not provide a valid SHA-256 checksum".to_string()
+        ))?;
 
     println!("\n{}", "Found package:".green().bold());
     println!("  Version:     {}", package.version);
@@ -51,7 +56,7 @@ pub async fn download_command(version: &str, vendor: Vendor) -> Result<()> {
             &package.mirror_urls,
             &filename,
             package.size,
-            package.checksum.as_deref(),
+            Some(checksum),
             ProgressDisplay::simple_callback(),
         ).await?;
         println!("{}", "[OK] Download complete".green());

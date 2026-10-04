@@ -1,4 +1,6 @@
 use crate::env::{EnvUpdater, get_env_updater};
+#[cfg(not(target_os = "windows"))]
+use crate::env::unix::UnixEnvUpdater;
 use crate::error::{JdkError, Result};
 use crate::jdk::JdkManager;
 use colored::*;
@@ -18,6 +20,8 @@ pub fn use_command(version: &str) -> Result<()> {
     // Update environment variables
     println!("\n{}", "Activating JDK...".cyan());
     let env_updater = get_env_updater();
+    #[cfg(not(target_os = "windows"))]
+    let rc_path = UnixEnvUpdater::shell_rc_path()?;
     let previous = manager.get_current_version().cloned();
     manager.set_current(key)?;
     if let Err(error) = env_updater.update_java_home(&jdk.path) {
@@ -48,13 +52,9 @@ pub fn use_command(version: &str) -> Result<()> {
         if env_updater.shell_uses_link()? {
             println!("  This terminal already uses the stable JDK path; java commands switch immediately.");
         } else {
-            let rc_path = if std::env::var("SHELL").unwrap_or_default().ends_with("zsh") {
-                "~/.zshrc"
-            } else {
-                "~/.bashrc"
-            };
             println!("\n{}", "One-time setup:".yellow().bold());
-            println!("  Run {} in this terminal.", format!("source {rc_path}").green());
+            println!("  Run {} in this terminal.",
+                format!("source {}", UnixEnvUpdater::shell_quote(&rc_path.to_string_lossy())).green());
             println!("  Future jsh use commands will then affect this open terminal immediately.");
         }
     }
