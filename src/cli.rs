@@ -8,7 +8,7 @@ use clap::{Parser, Subcommand};
     bin_name = "jsh",
     about = "Find, download, and switch JDKs",
     long_about = "Find installed JDKs, download verified packages, and switch the active Java from your terminal.",
-    after_help = "Get started:\n  jsh list\n  jsh search 21\n  jsh download 21\n  jsh use 21\n  jsh current\n\nMore details: jsh help <COMMAND>\nConfiguration: jsh_config.json beside the jsh executable."
+    after_help = "Get started:\n  jsh list\n  jsh search 21\n  jsh download 21\n  jsh use 21\n  jsh current\n\nVendors: temurin (default), corretto, zulu, openjdk\nFor search or download: jsh download 21 --vendor zulu\n\nDetailed command help:\n  jsh help download\n  jsh help use\n\nConfiguration: jsh_config.json beside the jsh executable."
 )]
 pub struct Cli {
     #[command(subcommand)]
