@@ -57,7 +57,7 @@ if (-not $isPersistent -and $PathAction -eq 'Prompt') {
     }
 }
 
-$repo = 'nanocm/j-switch'
+$repo = 'nanocm/jdk-switch'
 if (-not $Version) {
     $response = Invoke-WebRequest -Uri "https://github.com/$repo/releases/latest" -Method Head -UseBasicParsing
     $finalUri = if ($response.BaseResponse.PSObject.Properties.Name -contains 'RequestMessage') {

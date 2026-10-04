@@ -6,7 +6,7 @@ rust-version = "1.88"
 authors = ["YiTouch contributors", "nanocm"]
 description = "A command-line tool to manage and switch between multiple JDK installations"
 license = "MIT"
-repository = "https://github.com/nanocm/j-switch"
+repository = "https://github.com/nanocm/jdk-switch"
 
 [[bin]]
 name = "jsh"

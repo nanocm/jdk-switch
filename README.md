@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/nanocm/j-switch/releases/latest">Download</a> ·
+  <a href="https://github.com/nanocm/jdk-switch/releases/latest">Download</a> ·
   <a href="README.zh-CN.md">简体中文</a> ·
   <a href="RELEASE_NOTES.md">Release notes</a>
 </p>
@@ -19,18 +19,18 @@ The installer downloads the matching release, checks its SHA-256, and asks befor
 **Windows x64 · PowerShell**
 
 ```powershell
-Invoke-WebRequest https://github.com/nanocm/j-switch/releases/latest/download/install.ps1 -OutFile install.ps1 -UseBasicParsing
+Invoke-WebRequest https://github.com/nanocm/jdk-switch/releases/latest/download/install.ps1 -OutFile install.ps1 -UseBasicParsing
 powershell -NoProfile -ExecutionPolicy Bypass -File install.ps1
 ```
 
 **Linux x64 · macOS x64 / ARM64**
 
 ```bash
-curl -fsSL https://github.com/nanocm/j-switch/releases/latest/download/install.sh -o install.sh
+curl -fsSL https://github.com/nanocm/jdk-switch/releases/latest/download/install.sh -o install.sh
 bash install.sh
 ```
 
-Windows defaults to `%LOCALAPPDATA%\Programs\jsh`; Unix defaults to `~/.local/bin`. Choose a writable directory with `-InstallDir 'D:\Tools\jsh'` or `--dir "$HOME/tools"`. Use `-PathAction Add` / `--add-to-path` for unattended setup, or `-PathAction Skip` / `--skip-path` to manage `PATH` yourself. Open a new terminal after the installer changes `PATH`. [Manual downloads](https://github.com/nanocm/j-switch/releases/latest) are also available.
+Windows defaults to `%LOCALAPPDATA%\Programs\jsh`; Unix defaults to `~/.local/bin`. Choose a writable directory with `-InstallDir 'D:\Tools\jsh'` or `--dir "$HOME/tools"`. Use `-PathAction Add` / `--add-to-path` for unattended setup, or `-PathAction Skip` / `--skip-path` to manage `PATH` yourself. Open a new terminal after the installer changes `PATH`. [Manual downloads](https://github.com/nanocm/jdk-switch/releases/latest) are also available.
 
 ## Quick start
 

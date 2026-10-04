@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/nanocm/j-switch/releases/latest">下载</a> ·
+  <a href="https://github.com/nanocm/jdk-switch/releases/latest">下载</a> ·
   <a href="README.md">English</a> ·
   <a href="RELEASE_NOTES.md">更新说明</a>
 </p>
@@ -19,18 +19,18 @@
 **Windows x64 · PowerShell**
 
 ```powershell
-Invoke-WebRequest https://github.com/nanocm/j-switch/releases/latest/download/install.ps1 -OutFile install.ps1 -UseBasicParsing
+Invoke-WebRequest https://github.com/nanocm/jdk-switch/releases/latest/download/install.ps1 -OutFile install.ps1 -UseBasicParsing
 powershell -NoProfile -ExecutionPolicy Bypass -File install.ps1
 ```
 
 **Linux x64 · macOS x64 / ARM64**
 
 ```bash
-curl -fsSL https://github.com/nanocm/j-switch/releases/latest/download/install.sh -o install.sh
+curl -fsSL https://github.com/nanocm/jdk-switch/releases/latest/download/install.sh -o install.sh
 bash install.sh
 ```
 
-Windows 默认安装到 `%LOCALAPPDATA%\Programs\jsh`，Unix 默认安装到 `~/.local/bin`。可用 `-InstallDir 'D:\Tools\jsh'` 或 `--dir "$HOME/tools"` 指定用户可写目录。无人值守安装可加 `-PathAction Add` / `--add-to-path`；自行配置 `PATH` 时可加 `-PathAction Skip` / `--skip-path`。安装器修改 `PATH` 后请新开终端。也可[手动下载发布包](https://github.com/nanocm/j-switch/releases/latest)。
+Windows 默认安装到 `%LOCALAPPDATA%\Programs\jsh`，Unix 默认安装到 `~/.local/bin`。可用 `-InstallDir 'D:\Tools\jsh'` 或 `--dir "$HOME/tools"` 指定用户可写目录。无人值守安装可加 `-PathAction Add` / `--add-to-path`；自行配置 `PATH` 时可加 `-PathAction Skip` / `--skip-path`。安装器修改 `PATH` 后请新开终端。也可[手动下载发布包](https://github.com/nanocm/jdk-switch/releases/latest)。
 
 ## 快速开始
 

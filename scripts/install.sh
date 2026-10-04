@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo='nanocm/j-switch'
+repo='nanocm/jdk-switch'
 install_dir="${HOME}/.local/bin"
 version=''
 path_action='prompt'
