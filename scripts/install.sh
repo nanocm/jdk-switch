@@ -98,7 +98,9 @@ fi
 
 if [[ -z $version ]]; then
   latest_url=$(curl -fsSL -o /dev/null -w '%{url_effective}' "https://github.com/$repo/releases/latest")
-  version=${latest_url##*/}
+  [[ $latest_url =~ ^https://github\.com/nanocm/(j-switch|jdk-switch)/releases/tag/(v[^/]+)$ ]] || fail "Could not identify the latest release: $latest_url"
+  repo="nanocm/${BASH_REMATCH[1]}"
+  version=${BASH_REMATCH[2]}
 fi
 [[ $version =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.-]+)?$ ]] || fail "Invalid release tag: $version"
 

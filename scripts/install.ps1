@@ -57,25 +57,27 @@ if (-not $isPersistent -and $PathAction -eq 'Prompt') {
     }
 }
 
+$repo = 'nanocm/j-switch'
 if (-not $Version) {
-    $response = Invoke-WebRequest -Uri 'https://github.com/nanocm/j-switch/releases/latest' -Method Head -UseBasicParsing
+    $response = Invoke-WebRequest -Uri "https://github.com/$repo/releases/latest" -Method Head -UseBasicParsing
     $finalUri = if ($response.BaseResponse.PSObject.Properties.Name -contains 'RequestMessage') {
         $response.BaseResponse.RequestMessage.RequestUri
     } else {
         $response.BaseResponse.ResponseUri
     }
     if ($finalUri.Host -ne 'github.com' -or
-        $finalUri.AbsolutePath -cnotmatch '^/nanocm/j-switch/releases/tag/(v[^/]+)$') {
+        $finalUri.AbsolutePath -cnotmatch '^/nanocm/(j-switch|jdk-switch)/releases/tag/(v[^/]+)$') {
         throw "Could not identify the latest release: $finalUri"
     }
-    $Version = $Matches[1]
+    $repo = "nanocm/$($Matches[1])"
+    $Version = $Matches[2]
 }
 if ($Version -cnotmatch '^v[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.-]+)?$') {
     throw "Invalid release tag: $Version"
 }
 
 $asset = "jsh-$Version-windows-x64.zip"
-$baseUrl = "https://github.com/nanocm/j-switch/releases/download/$Version"
+$baseUrl = "https://github.com/$repo/releases/download/$Version"
 $tempBase = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd([char[]] @('\', '/'))
 $tempRoot = Join-Path $tempBase ('jsh-install-' + [guid]::NewGuid().ToString('N'))
 $staged = $null
